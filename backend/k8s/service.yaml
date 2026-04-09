@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: digitalprof-backend
+  labels:
+    app: digitalprof-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: digitalprof-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

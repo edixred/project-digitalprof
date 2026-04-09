@@ -1,0 +1,109 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - backend/**
+
+pool: my-agent
+
+variables:
+  - group: digitalprof-secrets 
+  - name: dockerImageName
+    value: 'dockerbayron/demo_digitalprof'
+  - name: dockerImageTag
+    value: 'latest'
+  - name: sonarHostUrl
+    value: 'http://localhost:9000'
+  - name: dockerRegistry
+    value: 'dockerbayron'
+  - name: dockerUsername
+    value: 'dockerbayron'
+  - name: k8sNamespace
+    value: 'default'
+  - name: appPort
+    value: 8080
+  - name: nodePort
+    value: 30080
+
+stages:
+  - stage: Build
+    displayName: Build and Test
+    jobs:
+      - job: BuildJob
+        displayName: Build Job
+        steps:
+          - task: Maven@4
+            displayName: Maven Build and Test
+            inputs:
+              mavenPomFile: 'backend/pom.xml'
+              goals: 'clean test'
+              javaHomeSelection: 'JDKVersion'
+              jdkVersion: '1.11'
+
+          - task: PublishTestResults@2
+            displayName: Publish Test Results
+            inputs:
+              testResultsFiles: '**/TEST-*.xml'
+              searchFolder: '$(Build.SourcesDirectory)/backend/target/surefire-reports'
+
+  - stage: SonarQube
+    displayName: SonarQube Analysis
+    jobs:
+      - job: SonarJob
+        displayName: SonarQube Job
+        steps:
+          - script: |
+              mvn -f backend/pom.xml sonar:sonar \
+                -Dsonar.projectKey=project-digitalprof \
+                -Dsonar.projectName='project-digitalprof' \
+                -Dsonar.host.url=http://localhost:9000 \
+                -Dsonar.token=$(sonarToken)
+            displayName: 'SonarQube Analysis'
+            env:
+              SONAR_TOKEN: $(sonarToken)
+
+  - stage: Docker
+    displayName: Build and Push Docker Image
+    jobs:
+      - job: DockerJob
+        displayName: Docker Job
+        steps:
+          - script: |
+              minikube status || minikube start
+              eval $(minikube -p minikube docker-env)
+              echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            displayName: 'Docker Login'
+            env:
+              DOCKER_PASSWORD: $(dockerPassword)
+              DOCKER_USERNAME: $(dockerUsername)
+
+          - script: |
+              eval $(minikube -p minikube docker-env)
+              docker build -t $(dockerImageName):$(dockerImageTag) backend/
+            displayName: 'Build Docker Image in Minikube'
+            workingDirectory: '$(Build.SourcesDirectory)'
+
+          - script: |
+              eval $(minikube -p minikube docker-env)
+              echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+              docker tag $(dockerImageName):$(dockerImageTag) $(dockerUsername)/demo_digitalprof:$(dockerImageTag)
+              docker push $(dockerUsername)/demo_digitalprof:$(dockerImageTag)
+            displayName: 'Push Image to DockerHub'
+            env:
+              DOCKER_PASSWORD: $(dockerPassword)
+              DOCKER_USERNAME: $(dockerUsername)
+
+  - stage: DeployK8s
+    displayName: Deploy to Minikube
+    jobs:
+      - job: K8sJob
+        displayName: Kubernetes Deployment
+        steps:
+          - script: |
+              minikube status
+              minikube kubectl -- cluster-info
+              minikube kubectl -- apply -f backend/k8s/
+              minikube kubectl -- rollout restart deployment/digitalprof-backend
+            displayName: 'Deploy to Minikube'

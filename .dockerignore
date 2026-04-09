@@ -1,0 +1,46 @@
+# Git
+.git
+.gitignore
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+
+# IDE
+.idea/
+*.iws
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+*.ctxt
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+*test*
+*Test*
+*.tmp
+
+# Documentation
+*.md
+LICENSE
+README*
+
+# CI/CD
+azure-pipelines.yml
+*.yml
+
+# Build artifacts
+build/
+out/
+dist/
