@@ -294,7 +294,7 @@ Forma de acceder al servicio:
 
 Para exponer el servicio de Minikube a Internet de forma segura, se utiliza **cloudflared** (Cloudflare Tunnel). Esto permite que el servicio sea accesible públicamente sin configuración de IP externa.
 
-El túnel se configura conectando el servicio local a la infraestructura de Cloudflare, creando un dominio público temporal.
+El túnel se configura conectando el servicio local a la infraestructura de Cloudflare, creando un dominio público temporal https://occurred-ssl-flavor-transcription.trycloudflare.com.
 
 ![Túnel cloudflared](img/Selection_011.png)
 
